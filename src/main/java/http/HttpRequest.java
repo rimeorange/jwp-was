@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import utils.IOUtils;
 import webserver.RequestHandler;
 
+import javax.naming.ldap.PagedResultsResponseControl;
 import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
@@ -15,6 +16,7 @@ public class HttpRequest {
     private final RequestLine requestLine;
     private final QueryStrings queryStrings;
     private final HttpHeaders headers;
+    private Cookies cookies = new Cookies();
     private Map<String, String> params = new HashMap<>();
 
     public HttpRequest(InputStream in) throws IOException {
@@ -27,7 +29,6 @@ public class HttpRequest {
 
         Map<String, String> header = new HashMap<>();
 
-
         line = br.readLine();
         while (!"".equals(line)) {
             logger.debug("header : {} ", line);
@@ -38,9 +39,21 @@ public class HttpRequest {
 
         this.headers = new HttpHeaders(header);
         this.queryStrings = requestLine.getQueryString();
+
         if(this.requestLine.getMapping().isPost()) {
             String body = IOUtils.readData(br, Integer.parseInt(headers.get("Content-Length")));
             params = new QueryStrings().getParseQuery(body);
+        }
+
+        if(header.containsKey("Cookie"))
+            initCookies(header.get("Cookie"));
+    }
+
+    private void initCookies(String cookie) {
+        String[] arrCookie = cookie.split(";");
+        for(String value :  arrCookie) {
+            String[] token = value.split("=");
+            cookies.put(token[0].trim(), token[1].trim());
         }
     }
 
@@ -62,5 +75,13 @@ public class HttpRequest {
 
     public HttpMethod getMethod() {
         return  requestLine.getMapping();
+    }
+
+    public HttpSession getHttpSession() {
+        return HttpSessionManager.getSession(cookies.get("JSESSIONID"));
+    }
+
+    public String getCookie(String param) {
+        return cookies.get(param);
     }
 }
