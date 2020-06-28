@@ -44,10 +44,6 @@ public class RequestHandler implements Runnable {
             String path = httpRequest.getPath();
             logger.debug("path : {} ", path);
 
-
-
-
-
             Controller controller = RequestMapping.getController(path);
 
             if (controller == null) {
